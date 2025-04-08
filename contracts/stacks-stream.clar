@@ -61,7 +61,11 @@
 
 ;; Helper Functions
 (define-private (uint-to-buff (n uint))
-  (unwrap-panic (uint-to-buff? n))
+  (unwrap-panic (to-consensus-buff? n))
+)
+
+(define-private (is-valid-balance (balance uint) (total uint))
+  (<= balance total)
 )
 
 (define-private (verify-signature 
@@ -184,11 +188,14 @@
         (uint-to-buff balance-b)
       ))
     )
+	(asserts! (is-eq total-channel-funds (+ balance-a balance-b)) ERR-INSUFFICIENT-FUNDS)
     (asserts! (is-valid-channel-id channel-id) ERR-INVALID-INPUT)
     (asserts! (is-valid-signature signature-a) ERR-INVALID-INPUT)
     (asserts! (is-valid-signature signature-b) ERR-INVALID-INPUT)
     (asserts! (not (is-eq tx-sender participant-b)) ERR-INVALID-INPUT)
     (asserts! (get is-open channel) ERR-CHANNEL-CLOSED)
+	(asserts! (is-valid-balance balance-a total-channel-funds) ERR-INVALID-INPUT)
+	(asserts! (is-valid-balance balance-b total-channel-funds) ERR-INVALID-INPUT)
 
     (asserts! 
       (and 
@@ -273,7 +280,7 @@
         participant-b: participant-b
       }
       (merge channel {
-        dispute-deadline: (+ block-height u1008),
+        dispute-deadline: (+ stacks-block-height u1008),
         balance-a: proposed-balance-a,
         balance-b: proposed-balance-b
       })
@@ -304,7 +311,7 @@
     (asserts! (is-valid-channel-id channel-id) ERR-INVALID-INPUT)
     (asserts! (not (is-eq tx-sender participant-b)) ERR-INVALID-INPUT)
     (asserts! 
-      (>= block-height (get dispute-deadline channel)) 
+      (>= stacks-block-height (get dispute-deadline channel)) 
       ERR-DISPUTE-PERIOD
     )
 
