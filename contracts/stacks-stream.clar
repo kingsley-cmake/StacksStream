@@ -74,3 +74,44 @@
     false
   )
 )
+
+;; Public Functions
+
+;; Creates a new payment channel between two participants
+(define-public (create-channel 
+  (channel-id (buff 32)) 
+  (participant-b principal)
+  (initial-deposit uint)
+)
+  (begin
+    (asserts! (is-valid-channel-id channel-id) ERR-INVALID-INPUT)
+    (asserts! (is-valid-deposit initial-deposit) ERR-INVALID-INPUT)
+    (asserts! (not (is-eq tx-sender participant-b)) ERR-INVALID-INPUT)
+
+    (asserts! (is-none (map-get? payment-channels {
+      channel-id: channel-id, 
+      participant-a: tx-sender, 
+      participant-b: participant-b
+    })) ERR-CHANNEL-EXISTS)
+
+    (try! (stx-transfer? initial-deposit tx-sender (as-contract tx-sender)))
+
+    (map-set payment-channels 
+      {
+        channel-id: channel-id, 
+        participant-a: tx-sender, 
+        participant-b: participant-b
+      }
+      {
+        total-deposited: initial-deposit,
+        balance-a: initial-deposit,
+        balance-b: u0,
+        is-open: true,
+        dispute-deadline: u0,
+        nonce: u0
+      }
+    )
+
+    (ok true)
+  )
+)
